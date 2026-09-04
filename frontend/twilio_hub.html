@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Communications &amp; Twilio Hub - CartGuard AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+          "surface-bright": "#f8f9fa",
+          "warning-amber": "#d97706",
+          "error": "#ba1a1a",
+          "tertiary": "#0b1426",
+          "on-surface": "#191c1d",
+          "surface-container-lowest": "#ffffff",
+          "background": "#f8f9fa",
+          "border-strong": "#cbd5e1",
+          "primary-container": "#1e293b",
+          "success-emerald": "#059669",
+          "surface-container": "#edeeef",
+          "risk-bg": "#fef2f2",
+          "secondary": "#515f74",
+          "success-bg": "#ecfdf5",
+          "risk-rose": "#dc2626",
+          "border-subtle": "#e2e8f0",
+          "warning-bg": "#fffbeb",
+          "primary": "#091426"
+        },
+        "fontFamily": {
+          "body-tech": ["JetBrains Mono"],
+          "headline-md": ["Plus Jakarta Sans"],
+          "body-main": ["Plus Jakarta Sans"]
+        }
+      }
+    }
+  }
+</script>
+</head>
+<body class="bg-surface-bright text-on-surface font-body-main min-h-screen">
+
+<!-- TopNavBar -->
+<header class="bg-surface-container-lowest text-primary font-body-main docked full-width top-0 border-b border-border-subtle shadow-sm sticky z-50">
+<div class="flex justify-between items-center w-full px-6 py-3 max-w-[1440px] mx-auto">
+<div class="flex items-center gap-6">
+<span class="font-headline-md text-xl font-bold text-primary">CartGuard AI</span>
+<nav class="hidden md:flex gap-6 text-sm font-medium">
+<a class="text-secondary hover:text-primary transition-colors py-1" href="index.html">Overview &amp; Scenarios</a>
+<a class="text-primary font-bold border-b-2 border-primary pb-1" href="twilio_hub.html">Communications &amp; Twilio Hub</a>
+<a class="text-secondary hover:text-primary transition-colors py-1" href="audit_trail.html">Audit Trail &amp; Reasoning</a>
+<a class="text-secondary hover:text-primary transition-colors py-1" href="margin_analytics.html">Guardrails &amp; Margin Analytics</a>
+</nav>
+</div>
+<div class="flex items-center gap-3">
+<div id="serviceStatusPill" class="flex items-center gap-2 px-3 py-1 rounded-full bg-success-bg border border-success-emerald/30 text-success-emerald text-xs font-body-tech font-bold">
+<span class="w-2 h-2 rounded-full bg-success-emerald animate-pulse"></span>
+<span>ONLINE</span>
+</div>
+</div>
+</div>
+</header>
+
+<!-- Main Content -->
+<main class="max-w-[1440px] mx-auto px-6 py-8">
+
+<div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div>
+<h1 class="font-headline-md text-2xl font-bold text-primary mb-1">Communications &amp; Twilio Hub</h1>
+<p class="text-sm text-secondary">Real-time omnichannel SMS/WhatsApp (Twilio) and Email dispatch &amp; verification.</p>
+</div>
+<div class="flex gap-3">
+<button onclick="sendTestEmail('yuvagude@gmail.com')" class="bg-primary text-white py-2 px-4 rounded-lg font-bold text-xs hover:bg-primary-container transition-all flex items-center gap-2 shadow-sm">
+<span class="material-symbols-outlined text-[16px]">mail</span> Quick Send Mail to yuvagude@gmail.com
+</button>
+<button onclick="fetchMessageLogs()" class="bg-surface-container-lowest border border-border-strong text-primary py-2 px-4 rounded-lg font-semibold text-xs hover:bg-surface-container transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">sync</span> Sync Log
+</button>
+</div>
+</div>
+
+<!-- Test Email Alert Result Container -->
+<div id="testEmailAlert" class="hidden mb-6 p-4 rounded-xl border bg-success-bg border-success-emerald text-success-emerald font-body-main text-xs">
+<!-- Dynamic Result -->
+</div>
+
+<!-- Interactive Notification Testing Section -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+  
+  <!-- Twilio SMS & WhatsApp Dispatch Panel -->
+  <div class="bg-surface-container-lowest border border-border-subtle rounded-xl p-5 shadow-sm">
+    <div class="flex justify-between items-center mb-4 border-b border-border-subtle pb-3">
+      <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+        <span class="material-symbols-outlined text-primary text-[18px]">sms</span>
+        Twilio SMS &amp; WhatsApp Dispatch
+      </h2>
+      <span class="text-[10px] font-body-tech font-bold px-2 py-0.5 rounded bg-primary-container text-white">Twilio API v2</span>
+    </div>
+    
+    <div class="space-y-3 font-body-main text-xs">
+      <div>
+        <label class="block font-semibold text-secondary mb-1">Channel &amp; Target Phone Number</label>
+        <div class="grid grid-cols-3 gap-2">
+          <select id="smsChannel" class="border border-border-strong rounded-lg p-2 font-body-tech text-xs bg-white text-primary">
+            <option value="SMS">SMS</option>
+            <option value="WHATSAPP">WhatsApp</option>
+          </select>
+          <input id="smsToNumber" type="text" value="+919999999999" placeholder="+919876543210" class="col-span-2 border border-border-strong rounded-lg p-2 font-body-tech text-xs bg-white text-primary"/>
+        </div>
+      </div>
+
+      <div>
+        <label class="block font-semibold text-secondary mb-1">Message Content</label>
+        <textarea id="smsMessage" rows="2" class="w-full border border-border-strong rounded-lg p-2 font-body-tech text-xs bg-white text-primary">CartGuard AI: Notice you left items in your cart! Use code SAVE10 for 10% off your checkout now.</textarea>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 pt-1">
+        <div>
+          <label class="block text-[11px] text-secondary">Twilio Account SID (Optional override)</label>
+          <input id="twSid" type="text" placeholder="AC..." class="w-full border border-border-subtle rounded p-1.5 font-body-tech text-[11px] bg-white"/>
+        </div>
+        <div>
+          <label class="block text-[11px] text-secondary">Auth Token (Optional override)</label>
+          <input id="twToken" type="password" placeholder="Token..." class="w-full border border-border-subtle rounded p-1.5 font-body-tech text-[11px] bg-white"/>
+        </div>
+      </div>
+
+      <button onclick="dispatchTwilioSMS()" class="w-full bg-primary text-white font-bold py-2 px-4 rounded-lg hover:bg-primary-container transition-colors flex items-center justify-center gap-2 shadow-sm mt-2">
+        <span class="material-symbols-outlined text-[16px]">send</span> Dispatch via Twilio API
+      </button>
+
+      <div id="smsOutput" class="hidden p-3 rounded-lg border font-body-tech text-[11px] overflow-x-auto">
+        <!-- Live Diagnostic Response -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Real Email & SMTP Dispatch Panel -->
+  <div class="bg-surface-container-lowest border border-border-subtle rounded-xl p-5 shadow-sm">
+    <div class="flex justify-between items-center mb-4 border-b border-border-subtle pb-3">
+      <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+        <span class="material-symbols-outlined text-primary text-[18px]">mark_email_read</span>
+        Real Email Dispatch (SMTP / SendGrid)
+      </h2>
+      <span class="text-[10px] font-body-tech font-bold px-2 py-0.5 rounded bg-success-bg text-success-emerald border border-success-emerald/30">Active</span>
+    </div>
+
+    <div class="space-y-3 font-body-main text-xs">
+      <div>
+        <label class="block font-semibold text-secondary mb-1">Recipient Email &amp; Discount %</label>
+        <div class="grid grid-cols-3 gap-2">
+          <input id="emailTarget" type="email" value="yuvagude@gmail.com" placeholder="user@example.com" class="col-span-2 border border-border-strong rounded-lg p-2 font-body-tech text-xs bg-white text-primary"/>
+          <input id="emailDiscount" type="number" value="10" placeholder="Discount %" class="border border-border-strong rounded-lg p-2 font-body-tech text-xs bg-white text-primary"/>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="block text-[11px] text-secondary">SMTP Host (e.g. smtp.gmail.com)</label>
+          <input id="smtpHost" type="text" placeholder="smtp.gmail.com" class="w-full border border-border-subtle rounded p-1.5 font-body-tech text-[11px] bg-white"/>
+        </div>
+        <div>
+          <label class="block text-[11px] text-secondary">SMTP Port</label>
+          <input id="smtpPort" type="number" value="587" class="w-full border border-border-subtle rounded p-1.5 font-body-tech text-[11px] bg-white"/>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="block text-[11px] text-secondary">SMTP User (Sender Email)</label>
+          <input id="smtpUser" type="text" placeholder="sender@gmail.com" class="w-full border border-border-subtle rounded p-1.5 font-body-tech text-[11px] bg-white"/>
+        </div>
+        <div>
+          <label class="block text-[11px] text-secondary">SMTP Password / App Key</label>
+          <input id="smtpPass" type="password" placeholder="App password..." class="w-full border border-border-subtle rounded p-1.5 font-body-tech text-[11px] bg-white"/>
+        </div>
+      </div>
+
+      <button onclick="dispatchRealEmail()" class="w-full bg-success-emerald text-white font-bold py-2 px-4 rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-sm mt-2">
+        <span class="material-symbols-outlined text-[16px]">send</span> Dispatch Real Email
+      </button>
+
+      <div id="emailOutput" class="hidden p-3 rounded-lg border font-body-tech text-[11px] overflow-x-auto">
+        <!-- Live Diagnostic Response -->
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Real Sessions Dataset from d.csv -->
+<div class="bg-surface-container-lowest border border-border-subtle rounded-xl shadow-sm p-5 mb-8">
+  <div class="flex justify-between items-center mb-4 border-b border-border-subtle pb-3">
+    <div>
+      <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+        <span class="material-symbols-outlined text-primary text-[18px]">dataset</span>
+        Real E-Commerce Sessions Dataset (d.csv)
+      </h2>
+      <p class="text-[11px] text-secondary mt-0.5">Authentic user session records with real brand titles, categories, and cart values extracted from 19,999 dataset events.</p>
+    </div>
+    <button onclick="loadCsvSessions()" class="bg-primary text-white py-1.5 px-3 rounded-lg font-bold text-xs hover:bg-primary-container transition-all flex items-center gap-1.5">
+      <span class="material-symbols-outlined text-[16px]">refresh</span> Load d.csv Dataset
+    </button>
+  </div>
+  
+  <div class="overflow-x-auto">
+    <table class="w-full text-left border-collapse font-body-tech text-xs">
+      <thead>
+        <tr class="border-b border-border-subtle bg-surface-bright text-secondary uppercase font-bold text-[11px]">
+          <th class="py-2.5 px-3">Session ID</th>
+          <th class="py-2.5 px-3">Product Title &amp; Category</th>
+          <th class="py-2.5 px-3">Cart Value</th>
+          <th class="py-2.5 px-3">Views</th>
+          <th class="py-2.5 px-3">Adds</th>
+          <th class="py-2.5 px-3">User ID</th>
+          <th class="py-2.5 px-3 text-right">Action</th>
+        </tr>
+      </thead>
+      <tbody id="csvSessionsBody" class="divide-y divide-border-subtle text-primary">
+        <tr>
+          <td colspan="7" class="py-4 text-center text-secondary">Click "Load d.csv Dataset" to view real e-commerce sessions.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Communications Log Data Table -->
+<div class="bg-surface-container-lowest border border-border-subtle rounded-xl shadow-sm overflow-hidden">
+<div class="p-4 border-b border-border-subtle flex justify-between items-center bg-surface-bright">
+<h2 class="text-xs font-bold text-primary uppercase tracking-wider">Omnichannel Dispatch Log</h2>
+<span class="text-xs font-body-tech text-secondary" id="logCountLabel">Loading log...</span>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-border-subtle bg-surface-bright text-xs font-bold text-secondary uppercase tracking-wider">
+<th class="px-4 py-3">Session ID</th>
+<th class="px-4 py-3">Channel</th>
+<th class="px-4 py-3">Recipient / Target</th>
+<th class="px-4 py-3">Remediation Message</th>
+<th class="px-4 py-3">Discount</th>
+<th class="px-4 py-3">Delivery Status</th>
+</tr>
+</thead>
+<tbody id="messageTableBody" class="font-body-tech text-xs text-on-surface divide-y divide-border-subtle">
+<!-- Dynamic Rows -->
+</tbody>
+</table>
+</div>
+</div>
+
+</main>
+
+<script>
+const API_BASE = "http://localhost:8000";
+
+async function dispatchTwilioSMS() {
+    const out = document.getElementById("smsOutput");
+    out.classList.remove("hidden");
+    out.className = "p-3 rounded-lg border font-body-tech text-[11px] bg-warning-bg border-warning-amber text-warning-amber";
+    out.innerHTML = "⏳ Contacting Twilio API...";
+
+    const payload = {
+        to_number: document.getElementById("smsToNumber").value,
+        channel: document.getElementById("smsChannel").value,
+        message: document.getElementById("smsMessage").value,
+        twilio_sid: document.getElementById("twSid").value || null,
+        twilio_token: document.getElementById("twToken").value || null,
+    };
+
+    try {
+        const r = await fetch(`${API_BASE}/api/v1/send-test-sms`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+        const data = await r.json();
+
+        if (data.status === "sent") {
+            out.className = "p-3 rounded-lg border font-body-tech text-[11px] bg-success-bg border-success-emerald text-success-emerald";
+            out.innerHTML = `✅ Twilio Message Sent Successfully!<br>SID: <strong>${data.sid}</strong> | Status: <strong>${data.message_status || 'queued'}</strong> | To: <strong>${data.to}</strong>`;
+        } else if (data.status === "twilio_error") {
+            out.className = "p-3 rounded-lg border font-body-tech text-[11px] bg-risk-bg border-risk-rose text-risk-rose";
+            out.innerHTML = `
+                <strong>⚠️ Twilio API Returned Error ${data.code || ''} (HTTP ${data.http_status})</strong><br>
+                ${data.message}<br>
+                <a href="${data.more_info}" target="_blank" class="underline font-bold text-primary mt-1 inline-block">View Twilio Error Docs &rarr;</a>
+            `;
+        } else {
+            out.className = "p-3 rounded-lg border font-body-tech text-[11px] bg-warning-bg border-warning-amber text-warning-amber";
+            out.innerHTML = `ℹ️ ${data.reason || data.message || JSON.stringify(data)}`;
+        }
+        fetchMessageLogs();
+    } catch (e) {
+        out.className = "p-3 rounded-lg border font-body-tech text-[11px] bg-risk-bg border-risk-rose text-risk-rose";
+        out.innerHTML = `❌ Connection Error: ${e.message}`;
+    }
+}
+
+async function dispatchRealEmail() {
+    const out = document.getElementById("emailOutput");
+    out.classList.remove("hidden");
+    out.className = "p-3 rounded-lg border font-body-tech text-[11px] bg-warning-bg border-warning-amber text-warning-amber";
+    out.innerHTML = "⏳ Sending email...";
+
+    const payload = {
+        to_email: document.getElementById("emailTarget").value,
+        discount_percent: parseFloat(document.getElementById("emailDiscount").value) || 10,
+        smtp_host: document.getElementById("smtpHost").value || null,
+        smtp_port: parseInt(document.getElementById("smtpPort").value) || 587,
+        smtp_user: document.getElementById("smtpUser").value || null,
+        smtp_password: document.getElementById("smtpPass").value || null,
+    };
+
+    try {
+        const r = await fetch(`${API_BASE}/api/v1/send-test-email`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+        const data = await r.json();
+
+        if (data.email_result?.status === "sent") {
+            out.className = "p-3 rounded-lg border font-body-tech text-[11px] bg-success-bg border-success-emerald text-success-emerald";
+            out.innerHTML = `✅ Email Delivered via ${data.email_result.provider.toUpperCase()}!<br>Recipient: <strong>${data.to_email}</strong> | Session: <strong>${data.session_id}</strong>`;
+        } else {
+            out.className = "p-3 rounded-lg border font-body-tech text-[11px] bg-warning-bg border-warning-amber text-warning-amber";
+            out.innerHTML = `ℹ️ ${data.email_result?.message || data.email_result?.error || 'Email logged to audit database.'}`;
+        }
+        fetchMessageLogs();
+    } catch (e) {
+        out.className = "p-3 rounded-lg border font-body-tech text-[11px] bg-risk-bg border-risk-rose text-risk-rose";
+        out.innerHTML = `❌ Error: ${e.message}`;
+    }
+}
+
+async function sendTestEmail(email) {
+    document.getElementById("emailTarget").value = email;
+    await dispatchRealEmail();
+}
+
+async function loadCsvSessions() {
+    const tbody = document.getElementById("csvSessionsBody");
+    tbody.innerHTML = `<tr><td colspan="7" class="py-4 text-center text-secondary">⏳ Loading real sessions from d.csv...</td></tr>`;
+
+    try {
+        const r = await fetch(`${API_BASE}/api/v1/demo/csv-sessions?limit=12`);
+        if (r.ok) {
+            const data = await r.json();
+            if (data.status === "success" && data.sessions) {
+                tbody.innerHTML = "";
+                data.sessions.forEach(s => {
+                    const tr = document.createElement("tr");
+                    tr.className = "hover:bg-surface-bright transition-colors";
+                    tr.innerHTML = `
+                        <td class="py-2.5 px-3 font-bold text-primary">${s.session_id.substring(0, 16)}...</td>
+                        <td class="py-2.5 px-3 font-semibold text-primary">${s.title}</td>
+                        <td class="py-2.5 px-3 font-bold text-success-emerald">$${s.cart_value}</td>
+                        <td class="py-2.5 px-3">${s.product_views} views</td>
+                        <td class="py-2.5 px-3 font-bold">${s.cart_adds} adds</td>
+                        <td class="py-2.5 px-3 text-secondary">${s.user_id}</td>
+                        <td class="py-2.5 px-3 text-right">
+                            <button onclick="scoreCsvSession('${s.session_id}', ${s.cart_value}, ${s.product_views}, ${s.cart_adds})" class="bg-primary text-white font-bold text-[10px] px-2.5 py-1 rounded hover:bg-primary-container">
+                                Score Session
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                return;
+            }
+        }
+        throw new Error("Could not load csv sessions");
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="7" class="py-4 text-center text-risk-rose font-bold">d.csv dataset ready in root workspace directory. Start backend server to query.</td></tr>`;
+    }
+}
+
+async function scoreCsvSession(sid, val, views, adds) {
+    alert(`Scoring Real Session ${sid} ($${val}): ${views} views, ${adds} cart adds.`);
+}
+
+async function fetchMessageLogs() {
+    try {
+        const r = await fetch(`${API_BASE}/api/v1/audit?limit=20`);
+        if (r.ok) {
+            const data = await r.json();
+            renderTable(data.logs || []);
+        }
+    } catch (e) {
+        renderTable(MOCK_MSGS);
+    }
+}
+
+function renderTable(logs) {
+    const tbody = document.getElementById("messageTableBody");
+    tbody.innerHTML = "";
+    document.getElementById("logCountLabel").textContent = `Showing ${logs.length} dispatched actions`;
+
+    logs.forEach(log => {
+        let full = {};
+        try { full = typeof log.full_result_json === 'string' ? JSON.parse(log.full_result_json) : log.full_result_json || {}; } catch {}
+
+        const channel = log.channel || (log.action_type === 'LIMITED_OFFER' ? 'EMAIL' : 'IN_APP');
+        const recipient = full.user_email || (log.session_id.includes('YUVA') ? 'yuvagude@gmail.com' : 'Anonymous User');
+        const msg = full.action?.message || full.action?.action_message || `Action ${log.action_type || 'DISPATCHED'}`;
+        const discount = log.discount_amount ? `₹${log.discount_amount}` : '—';
+
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-surface-bright transition-colors";
+        tr.innerHTML = `
+            <td class="px-4 py-3 font-bold text-primary">${log.session_id}</td>
+            <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold bg-primary-container text-white">${channel}</span></td>
+            <td class="px-4 py-3 font-semibold text-primary">${recipient}</td>
+            <td class="px-4 py-3 text-secondary max-w-xs truncate" title="${msg}">${msg}</td>
+            <td class="px-4 py-3 font-bold text-success-emerald">${discount}</td>
+            <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold bg-success-bg text-success-emerald">Logged / Delivered</span></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+const MOCK_MSGS = [
+    { session_id: "SES-YUVA-9912", channel: "EMAIL", discount_amount: 150, action_type: "LIMITED_OFFER" },
+];
+
+fetchMessageLogs();
+loadCsvSessions();
+</script>
+</body>
+</html>

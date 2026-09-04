@@ -1,0 +1,42 @@
+{
+  "feature_columns": [
+    "session_duration",
+    "product_views",
+    "cart_adds",
+    "cart_removes",
+    "cart_changes",
+    "cart_value",
+    "category_switches",
+    "tab_switches",
+    "page_revisits",
+    "checkout_steps_completed",
+    "checkout_time",
+    "payment_attempts",
+    "payment_failures",
+    "time_on_payment_page",
+    "payment_method_switches",
+    "form_field_errors",
+    "back_navigations",
+    "is_returning_visitor",
+    "session_recency_minutes",
+    "hesitation_score",
+    "price_sensitivity",
+    "funnel_friction",
+    "comparison_intent",
+    "urgency_score",
+    "payment_risk",
+    "behavioral_risk_index",
+    "engagement_score",
+    "payment_failure_rate",
+    "view_to_cart_ratio",
+    "cart_value_log",
+    "checkout_completion_rate",
+    "session_productivity"
+  ],
+  "weights": {
+    "catboost": 0.5,
+    "xgboost": 0.35,
+    "gbt": 0.15
+  },
+  "val_auc": 0.9445238117220954
+}
