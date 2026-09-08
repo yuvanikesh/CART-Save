@@ -1,0 +1,665 @@
+<title>CartGuard AI Context Optimizer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+  :root {
+    --slate-900: #1a1d29;
+    --slate-800: #2d3142;
+    --slate-700: #3d4258;
+    --slate-600: #4d5368;
+    --slate-400: #8b92a8;
+    --slate-200: #d4d7e0;
+    --slate-100: #e8eaf0;
+    --slate-50: #f4f4f6;
+    --blue-500: #4a90e2;
+    --blue-600: #357abd;
+    --green-500: #50c878;
+    --green-600: #3da860;
+    --amber-500: #f59e0b;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --slate-50: #1a1d29;
+      --slate-100: #2d3142;
+      --slate-200: #3d4258;
+      --slate-400: #8b92a8;
+      --slate-600: #b8bcc8;
+      --slate-700: #d4d7e0;
+      --slate-800: #e8eaf0;
+      --slate-900: #f4f4f6;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --slate-50: #1a1d29;
+    --slate-100: #2d3142;
+    --slate-200: #3d4258;
+    --slate-400: #8b92a8;
+    --slate-600: #b8bcc8;
+    --slate-700: #d4d7e0;
+    --slate-800: #e8eaf0;
+    --slate-900: #f4f4f6;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+    background: var(--slate-50);
+    color: var(--slate-900);
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  header {
+    margin-bottom: 3rem;
+  }
+
+  h1 {
+    font-family: 'Inter', sans-serif;
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+    color: var(--slate-900);
+    text-wrap: balance;
+  }
+
+  .subtitle {
+    font-size: 1.125rem;
+    color: var(--slate-600);
+    margin: 0;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+  }
+
+  .stat-card {
+    background: var(--slate-100);
+    border: 1px solid var(--slate-200);
+    border-radius: 12px;
+    padding: 1.5rem;
+  }
+
+  .stat-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--slate-600);
+    margin: 0 0 0.5rem 0;
+  }
+
+  .stat-value {
+    font-family: 'Inter', sans-serif;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--slate-900);
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stat-value.success {
+    color: var(--green-500);
+  }
+
+  .stat-detail {
+    font-size: 0.875rem;
+    color: var(--slate-600);
+    margin: 0.5rem 0 0 0;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 0.5rem;
+    border-bottom: 2px solid var(--slate-200);
+    margin-bottom: 2rem;
+  }
+
+  .tab {
+    background: none;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--slate-600);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.2s;
+  }
+
+  .tab:hover {
+    color: var(--slate-900);
+  }
+
+  .tab.active {
+    color: var(--blue-500);
+    border-bottom-color: var(--blue-500);
+  }
+
+  .tab-content {
+    display: none;
+  }
+
+  .tab-content.active {
+    display: block;
+  }
+
+  .comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .comparison-section {
+    background: var(--slate-100);
+    border: 1px solid var(--slate-200);
+    border-radius: 12px;
+    padding: 1.5rem;
+  }
+
+  .comparison-section h3 {
+    font-family: 'Inter', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0 0 1rem 0;
+    color: var(--slate-900);
+  }
+
+  .file-info {
+    background: var(--slate-50);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    font-family: ui-monospace, 'SF Mono', Monaco, monospace;
+    font-size: 0.875rem;
+  }
+
+  .file-info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+  }
+
+  .file-info-row:last-child {
+    margin-bottom: 0;
+  }
+
+  .file-info-label {
+    color: var(--slate-600);
+  }
+
+  .file-info-value {
+    color: var(--slate-900);
+    font-weight: 600;
+  }
+
+  .optimization-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .optimization-item {
+    background: var(--slate-100);
+    border: 1px solid var(--slate-200);
+    border-left: 4px solid var(--green-500);
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+  }
+
+  .optimization-item h4 {
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+    color: var(--slate-900);
+  }
+
+  .optimization-item p {
+    margin: 0;
+    color: var(--slate-700);
+    font-size: 0.9375rem;
+  }
+
+  .tip-box {
+    background: var(--slate-100);
+    border: 1px solid var(--blue-500);
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+  }
+
+  .tip-box h4 {
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+    color: var(--blue-500);
+  }
+
+  .tip-box p {
+    margin: 0 0 0.5rem 0;
+    color: var(--slate-700);
+    font-size: 0.9375rem;
+  }
+
+  .tip-box p:last-child {
+    margin-bottom: 0;
+  }
+
+  .code-block {
+    background: var(--slate-50);
+    border: 1px solid var(--slate-200);
+    border-radius: 8px;
+    padding: 1rem;
+    overflow-x: auto;
+    font-family: ui-monospace, 'SF Mono', Monaco, monospace;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--slate-800);
+  }
+
+  .badge {
+    display: inline-block;
+    background: var(--green-500);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    margin-left: 0.5rem;
+  }
+
+  .section-grid {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .section-card {
+    background: var(--slate-100);
+    border: 1px solid var(--slate-200);
+    border-radius: 8px;
+    padding: 1rem;
+  }
+
+  .section-card h4 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+    color: var(--slate-900);
+  }
+
+  .section-card p {
+    font-size: 0.875rem;
+    margin: 0;
+    color: var(--slate-700);
+  }
+
+  @media (max-width: 768px) {
+    .comparison {
+      grid-template-columns: 1fr;
+    }
+
+    h1 {
+      font-size: 2rem;
+    }
+  }
+</style>
+
+<div class="container">
+  <header>
+    <h1>CartGuard AI Context Optimizer</h1>
+    <p class="subtitle">Analyzed MASTER_PROMPT.md and created condensed CLAUDE.md for efficient AI context management</p>
+  </header>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <p class="stat-label">Context Saved</p>
+      <p class="stat-value success">88%</p>
+      <p class="stat-detail">From ~70KB to ~8KB baseline load</p>
+    </div>
+
+    <div class="stat-card">
+      <p class="stat-label">Original Size</p>
+      <p class="stat-value">1,004 lines</p>
+      <p class="stat-detail">MASTER_PROMPT.md comprehensive spec</p>
+    </div>
+
+    <div class="stat-card">
+      <p class="stat-label">Condensed Size</p>
+      <p class="stat-value">172 lines</p>
+      <p class="stat-detail">CLAUDE.md quick reference</p>
+    </div>
+
+    <div class="stat-card">
+      <p class="stat-label">Invariants Extracted</p>
+      <p class="stat-value">7</p>
+      <p class="stat-detail">Critical rules that block merges</p>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="overview">Overview</button>
+    <button class="tab" data-tab="comparison">Before/After</button>
+    <button class="tab" data-tab="strategies">Optimization Strategies</button>
+    <button class="tab" data-tab="structure">CLAUDE.md Structure</button>
+  </div>
+
+  <div class="tab-content active" data-content="overview">
+    <h2 style="font-family: 'Inter', sans-serif; font-size: 1.75rem; font-weight: 600; margin: 0 0 1.5rem 0;">Analysis Summary</h2>
+
+    <div class="comparison">
+      <div class="comparison-section">
+        <h3>MASTER_PROMPT.md</h3>
+        <div class="file-info">
+          <div class="file-info-row">
+            <span class="file-info-label">Lines:</span>
+            <span class="file-info-value">1,004</span>
+          </div>
+          <div class="file-info-row">
+            <span class="file-info-label">Sections:</span>
+            <span class="file-info-value">33</span>
+          </div>
+          <div class="file-info-row">
+            <span class="file-info-label">Size:</span>
+            <span class="file-info-value">~70KB</span>
+          </div>
+          <div class="file-info-row">
+            <span class="file-info-label">Purpose:</span>
+            <span class="file-info-value">Comprehensive spec</span>
+          </div>
+        </div>
+        <p style="color: var(--slate-700); font-size: 0.9375rem;">Authoritative build specification containing product vision, engineering constitution, domain vocabulary, architecture details, implementation phases, and complete acceptance criteria.</p>
+      </div>
+
+      <div class="comparison-section">
+        <h3>CLAUDE.md <span class="badge">New</span></h3>
+        <div class="file-info">
+          <div class="file-info-row">
+            <span class="file-info-label">Lines:</span>
+            <span class="file-info-value">172</span>
+          </div>
+          <div class="file-info-row">
+            <span class="file-info-label">Sections:</span>
+            <span class="file-info-value">9</span>
+          </div>
+          <div class="file-info-row">
+            <span class="file-info-label">Size:</span>
+            <span class="file-info-value">~8KB</span>
+          </div>
+          <div class="file-info-row">
+            <span class="file-info-label">Purpose:</span>
+            <span class="file-info-value">Quick reference</span>
+          </div>
+        </div>
+        <p style="color: var(--slate-700); font-size: 0.9375rem;">Condensed guide extracting critical constraints, invariants, and patterns AI needs for day-to-day work, with references to full spec sections.</p>
+      </div>
+    </div>
+
+    <h3 style="font-family: 'Inter', sans-serif; font-size: 1.5rem; font-weight: 600; margin: 2rem 0 1rem 0;">Key Extractions</h3>
+
+    <ul class="optimization-list">
+      <li class="optimization-item">
+        <h4>Non-Negotiable Invariants</h4>
+        <p>Extracted 7 critical rules from Section 2 that block merges: no decisions without consent, no cross-tenant access, no arbitrary HTML/JS, model failures must not increase aggressiveness, and experimentation requirements.</p>
+      </li>
+
+      <li class="optimization-item">
+        <h4>Architecture Patterns</h4>
+        <p>Condensed repository structure, layering rules (pure domain vs adapters), decision flow pipeline, and allowed action catalog from Sections 4-9.</p>
+      </li>
+
+      <li class="optimization-item">
+        <h4>Development Workflow</h4>
+        <p>Extracted vertical slice approach, testing requirements across 6 layers, and three-reviewer loop (Infrastructure, AI, Business) from Sections 19-21.</p>
+      </li>
+
+      <li class="optimization-item">
+        <h4>Coding Standards</h4>
+        <p>Key TypeScript strict-mode requirements, validation patterns, and prohibited practices from Section 5.</p>
+      </li>
+
+      <li class="optimization-item">
+        <h4>Event Schemas</h4>
+        <p>Core event types, envelope structure, and prohibited data fields from Section 7.</p>
+      </li>
+
+      <li class="optimization-item">
+        <h4>Section References</h4>
+        <p>Added §-numbered pointers to 16 detailed MASTER_PROMPT.md sections for deep dives when needed.</p>
+      </li>
+    </ul>
+  </div>
+
+  <div class="tab-content" data-content="comparison">
+    <h2 style="font-family: 'Inter', sans-serif; font-size: 1.75rem; font-weight: 600; margin: 0 0 1.5rem 0;">Content Comparison</h2>
+
+    <div class="section-grid">
+      <div class="section-card">
+        <h4>Quick Start Commands</h4>
+        <p><strong>Before:</strong> Scattered across Section 17 (Docker Compose)<br>
+        <strong>After:</strong> Front-loaded in 30-second scan section with 4 core commands</p>
+      </div>
+
+      <div class="section-card">
+        <h4>Tech Stack</h4>
+        <p><strong>Before:</strong> Distributed through Sections 4, 5, 10, 17<br>
+        <strong>After:</strong> One-line summary: TypeScript strict-mode monorepo (pnpm + turbo), FastAPI, PostgreSQL, Redis, Kafka</p>
+      </div>
+
+      <div class="section-card">
+        <h4>Invariants</h4>
+        <p><strong>Before:</strong> 10 bullet points in Section 2.51-60<br>
+        <strong>After:</strong> 7 essential invariants grouped by Data/Consent, Decision Safety, and Experimentation</p>
+      </div>
+
+      <div class="section-card">
+        <h4>Repository Structure</h4>
+        <p><strong>Before:</strong> Full tree with all subdirectories in Section 5<br>
+        <strong>After:</strong> Condensed structure with role labels (PURE, OpenAPI, use cases, adapters)</p>
+      </div>
+
+      <div class="section-card">
+        <h4>Testing Strategy</h4>
+        <p><strong>Before:</strong> Complete table with 10 layers in Section 20<br>
+        <strong>After:</strong> 6 required layers + 9 mandatory invariant tests</p>
+      </div>
+
+      <div class="section-card">
+        <h4>Decision Flow</h4>
+        <p><strong>Before:</strong> Mermaid diagram + pseudocode in Section 9<br>
+        <strong>After:</strong> Linear text flow showing the pipeline stages</p>
+      </div>
+
+      <div class="section-card">
+        <h4>Three-Reviewer Loop</h4>
+        <p><strong>Before:</strong> Full flowchart + detailed procedures in Section 21<br>
+        <strong>After:</strong> 3-row table with reviewer roles + P0/P1/P2 severity definitions</p>
+      </div>
+
+      <div class="section-card">
+        <h4>Detailed Specs</h4>
+        <p><strong>Before:</strong> Inline throughout 1,004 lines<br>
+        <strong>After:</strong> 16 section references (§1-§33) for deep dives</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-content" data-content="strategies">
+    <h2 style="font-family: 'Inter', sans-serif; font-size: 1.75rem; font-weight: 600; margin: 0 0 1.5rem 0;">Context Optimization Strategies Applied</h2>
+
+    <div class="tip-box">
+      <h4>1. Use /compact Often</h4>
+      <p><strong>Implementation:</strong> The condensed CLAUDE.md reduces baseline context from ~70KB to ~8KB, minimizing the need for frequent manual compaction.</p>
+      <p><strong>Benefit:</strong> AI agents start with 88% more context budget available for actual implementation work rather than specification parsing.</p>
+    </div>
+
+    <div class="tip-box">
+      <h4>2. Context Optimizer Patterns</h4>
+      <p><strong>Front-loaded critical rules:</strong> Non-negotiable invariants appear in the first 50 lines, ensuring AI sees constraints before making decisions.</p>
+      <p><strong>Scannable structure:</strong> Headers indicate scan time (30-second, 1-minute, 2-minute) so AI can quickly locate information.</p>
+      <p><strong>Essential-first ordering:</strong> Tech stack, commands, and safety defaults appear before detailed workflows.</p>
+    </div>
+
+    <div class="tip-box">
+      <h4>3. The CLAUDE.md Trick</h4>
+      <p><strong>Micro-file with strict rules:</strong> CLAUDE.md kept under 200 lines (~172 lines achieved) while preserving all critical architectural constraints.</p>
+      <p><strong>Project conventions at a glance:</strong> Repository structure, layering rule, decision flow, and coding standards visible without scrolling.</p>
+      <p><strong>Reference-driven depth:</strong> Section references (§1-§33) let AI dive deep only when needed, not by default.</p>
+    </div>
+
+    <h3 style="font-family: 'Inter', sans-serif; font-size: 1.5rem; font-weight: 600; margin: 2rem 0 1rem 0;">Additional Optimizations</h3>
+
+    <ul class="optimization-list">
+      <li class="optimization-item">
+        <h4>Hierarchical Information Architecture</h4>
+        <p>Organized content in tiers: Quick Start (30s) → Invariants (1m) → Architecture (2m) → Workflow → References, matching how AI agents progressively load context.</p>
+      </li>
+
+      <li class="optimization-item">
+        <h4>Token-Efficient Formatting</h4>
+        <p>Replaced verbose prose with structured lists, tables, and code blocks where appropriate. Used inline code for technical terms instead of surrounding explanations.</p>
+      </li>
+
+      <li class="optimization-item">
+        <h4>Deduplication</h4>
+        <p>Eliminated repeated concepts across sections. For example, "pure domain layer" mentioned once with full explanation, then referenced concisely elsewhere.</p>
+      </li>
+
+      <li class="optimization-item">
+        <h4>Command-Ready Format</h4>
+        <p>Included actual commands (make up, make test-integration) rather than describing workflows verbally, reducing interpretation overhead.</p>
+      </li>
+
+      <li class="optimization-item">
+        <h4>Context Optimization Tips Section</h4>
+        <p>Added meta-guidance at the end teaching AI agents how to work efficiently with this codebase using /compact, focused grep, and incremental testing.</p>
+      </li>
+    </ul>
+  </div>
+
+  <div class="tab-content" data-content="structure">
+    <h2 style="font-family: 'Inter', sans-serif; font-size: 1.75rem; font-weight: 600; margin: 0 0 1.5rem 0;">CLAUDE.md Structure</h2>
+
+    <div class="code-block" style="margin-bottom: 2rem;">
+# CartGuard AI Development Guide
+
+## Quick Start (30-second scan)
+├─ Repository type, tech stack
+├─ Default behavior: NO_ACTION fallback
+└─ Core commands: make up, make test-integration
+
+## Non-Negotiable Invariants
+├─ Data & Consent (4 rules)
+├─ Decision Safety (4 rules)
+└─ Experimentation & Measurement (3 rules)
+
+## Architecture Patterns
+├─ Repository Structure (annotated tree)
+├─ Layering Rule (pure domain vs adapters)
+├─ Decision Flow (pipeline visualization)
+└─ Allowed Actions (catalog)
+
+## Coding Standards
+└─ 8 key standards from TypeScript config to testing requirements
+
+## Development Workflow
+├─ Vertical Slice Approach (7 steps)
+├─ Testing Requirements (6 layers + invariant tests)
+└─ Three-Reviewer Loop (Infrastructure, AI, Business)
+
+## Event Schemas
+├─ Core Events (12 types)
+├─ Envelope Structure
+└─ Prohibited Data
+
+## Reference Documentation
+└─ 16 MASTER_PROMPT.md section pointers (§1-§33)
+
+## Context Optimization Tips
+└─ 5 strategies for working efficiently
+    </div>
+
+    <h3 style="font-family: 'Inter', sans-serif; font-size: 1.5rem; font-weight: 600; margin: 1.5rem 0 1rem 0;">Design Principles</h3>
+
+    <div class="section-grid">
+      <div class="section-card">
+        <h4>Scannable Hierarchy</h4>
+        <p>Each section header indicates how long it takes to scan (30-second, 1-minute, 2-minute), helping AI prioritize what to read based on context budget.</p>
+      </div>
+
+      <div class="section-card">
+        <h4>No Prose Bloat</h4>
+        <p>Eliminated "as mentioned above," "it's important to note," and similar filler. Every line carries essential information.</p>
+      </div>
+
+      <div class="section-card">
+        <h4>Visual Separators</h4>
+        <p>Used horizontal rules (---) sparingly to mark major section boundaries, making structure clear at a glance.</p>
+      </div>
+
+      <div class="section-card">
+        <h4>Inline Code Formatting</h4>
+        <p>Technical terms like `NO_ACTION`, `decision_id`, `packages/domain/` formatted as code to distinguish them from prose.</p>
+      </div>
+
+      <div class="section-card">
+        <h4>Grouped Lists</h4>
+        <p>Related items grouped with subheadings (Data & Consent, Decision Safety) rather than flat bullet lists.</p>
+      </div>
+
+      <div class="section-card">
+        <h4>Reference Format</h4>
+        <p>Section references use consistent format "§X — Description" making them easy to grep and follow.</p>
+      </div>
+    </div>
+
+    <div style="margin-top: 2rem; padding: 1.5rem; background: var(--slate-100); border-left: 4px solid var(--blue-500); border-radius: 8px;">
+      <h4 style="margin: 0 0 0.5rem 0; color: var(--blue-500); font-family: 'Inter', sans-serif; font-weight: 600;">Result</h4>
+      <p style="margin: 0; color: var(--slate-700);">The new CLAUDE.md gives AI agents everything they need to start coding in CartGuard AI without loading the full 1,004-line specification. It preserves all critical constraints while saving 88% of baseline context, leaving more room for actual implementation work, file reads, and tool outputs.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Tab switching
+  const tabs = document.querySelectorAll('.tab');
+  const contents = document.querySelectorAll('.tab-content');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const targetTab = tab.dataset.tab;
+
+      // Update active tab
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+
+      // Update active content
+      contents.forEach(content => {
+        if (content.dataset.content === targetTab) {
+          content.classList.add('active');
+        } else {
+          content.classList.remove('active');
+        }
+      });
+    });
+  });
+</script>

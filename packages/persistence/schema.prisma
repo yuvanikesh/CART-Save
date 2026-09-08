@@ -1,0 +1,356 @@
+// CartGuard AI - Prisma Schema
+// Per MASTER_PROMPT.md Section 10: Persistence and Transactional Safety
+//
+// Core integrity rules:
+// - Strict tenant isolation in every query
+// - Immutable decision audit fields
+// - Idempotent event dedupe
+// - Conditional budget reserve/commit
+// - Row-level security as defense-in-depth
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tenants and Organizations
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Tenant {
+  id        String   @id @default(cuid()) @map("tenant_id")
+  name      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  shops        Shop[]
+  policies     Policy[]
+  experiments  Experiment[]
+  decisions    Decision[]
+  budgets      Budget[]
+  killSwitches KillSwitch[]
+  auditLogs    AuditLog[]
+
+  @@map("tenants")
+}
+
+model Shop {
+  id        String   @id @default(cuid()) @map("shop_id")
+  tenantId  String   @map("tenant_id")
+  origin    String   // Allowed origin for browser SDK
+  currency  String   // USD, EUR, GBP, INR
+  locale    String   // en-US, fr-FR, etc.
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant       Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  policies     Policy[]
+  decisions    Decision[]
+  killSwitches KillSwitch[]
+
+  @@unique([tenantId, origin])
+  @@index([tenantId])
+  @@map("shops")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Policies (Section 2: Engineering Constitution, Appendix A)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Policy {
+  id         String   @id @default(cuid()) @map("policy_id")
+  version    String   @map("policy_version") // Immutable version identifier
+  tenantId   String   @map("tenant_id")
+  shopId     String   @map("shop_id")
+  active     Boolean  @default(false)
+  activatedAt DateTime? @map("activated_at")
+
+  // Configuration (stored as JSON)
+  allowedActions          Json     @map("allowed_actions") // ActionType[]
+  frequencyCaps           Json     @map("frequency_caps") // FrequencyCaps
+  economics               Json     @map("economics") // PolicyEconomics
+  experimentationConfig   Json     @map("experimentation_config") // ExperimentationConfig
+  fallbackConfig          Json     @map("fallback_config") // FallbackConfig
+  consentRequirements     Json     @map("consent_requirements") // ConsentRequirements
+
+  createdAt  DateTime @default(now()) @map("created_at")
+  createdBy  String   @map("created_by")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  shop      Shop       @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  decisions Decision[]
+
+  @@unique([tenantId, shopId, version])
+  @@index([tenantId, shopId, active])
+  @@index([version])
+  @@map("policies")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Experiments (Section 14: Experimentation and Measurement)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Experiment {
+  id          String   @id @default(cuid()) @map("experiment_id")
+  tenantId    String   @map("tenant_id")
+  name        String
+  hypothesis  String   @db.Text
+  state       String   // draft, active, paused, completed, cancelled
+
+  // Allocation (stored as JSON)
+  allocation  Json     @map("allocation") // ExperimentAllocation
+  metrics     Json     @map("metrics") // ExperimentMetrics
+
+  startDate   DateTime? @map("start_date")
+  endDate     DateTime? @map("end_date")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  createdBy   String    @map("created_by")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  decisions Decision[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId, state])
+  @@map("experiments")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Decisions (Section 9: Decision Orchestration, Section 10: Persistence)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Decision {
+  id                String   @id @default(cuid()) @map("decision_id")
+  sessionId         String   @map("session_id")
+  tenantId          String   @map("tenant_id")
+  shopId            String   @map("shop_id")
+
+  // Immutable decision fields (Section 2.56)
+  status            String   // APPROVED, REJECTED, NO_ACTION
+  action            Json     @map("action") // Action (discriminated union)
+  reasonCodes       Json     @map("reason_codes") // string[]
+  policyVersion     String   @map("policy_version")
+  modelVersion      String?  @map("model_version")
+  experimentId      String?  @map("experiment_id")
+  experimentVariant String?  @map("experiment_variant") // control, treatment
+  featureSnapshotId String?  @map("feature_snapshot_id")
+
+  // Timestamps
+  requestedAt DateTime @map("requested_at")
+  decidedAt   DateTime @map("decided_at")
+  expiresAt   DateTime @map("expires_at")
+
+  // Tracing
+  traceId     String   @map("trace_id")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  shop        Shop        @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  policy      Policy      @relation(fields: [policyVersion], references: [version])
+  experiment  Experiment? @relation(fields: [experimentId], references: [id])
+
+  exposures   Exposure[]
+  outcomes    Outcome[]
+
+  @@unique([tenantId, id])
+  @@index([tenantId, sessionId])
+  @@index([tenantId, decidedAt])
+  @@index([experimentId, experimentVariant])
+  @@index([traceId])
+  @@map("decisions")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Exposures and Outcomes (Section 10: Audit and Outcomes)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Exposure {
+  id               String   @id @default(cuid()) @map("exposure_id")
+  decisionId       String   @map("decision_id")
+  sessionId        String   @map("session_id")
+  tenantId         String   @map("tenant_id")
+  rendererVersion  String   @map("renderer_version")
+  exposedAt        DateTime @map("exposed_at")
+
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  decision Decision @relation(fields: [decisionId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, decisionId, exposedAt]) // Idempotent linkage
+  @@index([tenantId, sessionId])
+  @@index([decisionId])
+  @@map("exposures")
+}
+
+model Outcome {
+  id          String   @id @default(cuid()) @map("outcome_id")
+  decisionId  String?  @map("decision_id") // Nullable - not all orders have decisions
+  sessionId   String   @map("session_id")
+  tenantId    String   @map("tenant_id")
+  type        String   // conversion, redemption, refund, dismissal, timeout
+
+  // Order/refund data (hashed/bucketed per Section 7)
+  orderHash     String?  @map("order_hash")
+  revenueMinor  Int?     @map("revenue_minor")
+  marginMinor   Int?     @map("margin_minor")
+  refundMinor   Int?     @map("refund_minor")
+
+  occurredAt  DateTime @map("occurred_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  decision Decision? @relation(fields: [decisionId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, orderHash, type]) // Idempotent linkage per outcome type
+  @@index([tenantId, sessionId])
+  @@index([decisionId])
+  @@index([occurredAt])
+  @@map("outcomes")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Budgets (Section 2.54: No incentive beyond budget)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Budget {
+  id                    String   @id @default(cuid()) @map("budget_id")
+  tenantId              String   @map("tenant_id")
+  month                 String   // YYYY-MM format
+  budgetMinor           Int      @map("budget_minor")
+  spentMinor            Int      @default(0) @map("spent_minor")
+  reservedMinor         Int      @default(0) @map("reserved_minor")
+
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, month])
+  @@index([tenantId, month])
+  @@map("budgets")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Kill Switches (Section 2.59: Kill switch scopes)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model KillSwitch {
+  id          String   @id @default(cuid()) @map("kill_switch_id")
+  scope       String   // global, tenant, shop, experiment, action, model
+  resourceId  String?  @map("resource_id") // Specific resource being disabled
+  tenantId    String?  @map("tenant_id") // Only for tenant/shop scopes
+  shopId      String?  @map("shop_id") // Only for shop scope
+  active      Boolean  @default(true)
+  reason      String   @db.Text
+
+  activatedAt DateTime @default(now()) @map("activated_at")
+  activatedBy String   @map("activated_by")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  shop   Shop?   @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@index([scope, active])
+  @@index([tenantId, active])
+  @@index([resourceId, active])
+  @@map("kill_switches")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Outbox Pattern (Section 10: Transactional Safety)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model OutboxEvent {
+  id            String   @id @default(cuid()) @map("outbox_id")
+  eventType     String   @map("event_type")
+  payload       Json     @map("payload")
+  aggregateId   String   @map("aggregate_id") // decision_id, policy_id, etc.
+  tenantId      String   @map("tenant_id")
+
+  processed     Boolean  @default(false)
+  processedAt   DateTime? @map("processed_at")
+  attempts      Int      @default(0)
+  lastAttemptAt DateTime? @map("last_attempt_at")
+  error         String?  @db.Text
+
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([processed, createdAt])
+  @@index([tenantId, processed])
+  @@index([aggregateId])
+  @@map("outbox_events")
+}
+
+model InboxEvent {
+  id            String   @id @map("event_id") // From source event
+  eventType     String   @map("event_type")
+  payload       Json     @map("payload")
+  tenantId      String   @map("tenant_id")
+
+  processed     Boolean  @default(false)
+  processedAt   DateTime? @map("processed_at")
+
+  receivedAt    DateTime @default(now()) @map("received_at")
+
+  @@unique([tenantId, id]) // Dedupe by tenant + event_id
+  @@index([tenantId, processed])
+  @@map("inbox_events")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Audit Log (Section 10: Append-only audit)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id           String   @id @default(cuid()) @map("audit_id")
+  tenantId     String   @map("tenant_id")
+  actorId      String   @map("actor_id")
+  actorRole    String   @map("actor_role")
+  resourceType String   @map("resource_type") // policy, experiment, kill_switch, etc.
+  resourceId   String   @map("resource_id")
+  action       String   // created, updated, activated, deactivated, deleted
+
+  beforeHash   String?  @map("before_hash") // SHA-256 of previous state
+  afterHash    String   @map("after_hash") // SHA-256 of new state
+  reason       String?  @db.Text
+  approvalId   String?  @map("approval_id") // For two-person rule changes
+
+  occurredAt   DateTime @default(now()) @map("occurred_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, occurredAt])
+  @@index([resourceType, resourceId])
+  @@index([actorId])
+  @@map("audit_logs")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sessions (for frequency cap tracking)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Session {
+  id                String   @id @map("session_id")
+  tenantId          String   @map("tenant_id")
+  shopId            String   @map("shop_id")
+  customerIdHash    String?  @map("customer_id_hash") // Hashed customer ID
+
+  interventionCount Int      @default(0) @map("intervention_count")
+
+  startedAt         DateTime @default(now()) @map("started_at")
+  lastActivityAt    DateTime @default(now()) @map("last_activity_at")
+
+  @@unique([tenantId, id])
+  @@index([tenantId, customerIdHash])
+  @@index([tenantId, lastActivityAt])
+  @@map("sessions")
+}

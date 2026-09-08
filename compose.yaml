@@ -1,0 +1,133 @@
+# CartGuard AI Development Environment
+# Per MASTER_PROMPT.md Section 17.547-566
+# Docker Compose configuration with PostgreSQL, Redis, Kafka-compatible streaming
+
+version: '3.9'
+
+services:
+  # PostgreSQL 16 - Primary data store
+  postgres:
+    image: postgres:16-alpine
+    container_name: cartguard-postgres
+    environment:
+      POSTGRES_DB: cartguard
+      POSTGRES_USER: cartguard
+      POSTGRES_PASSWORD: cartguard_local_only
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/docker/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U cartguard']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cartguard
+
+  # Redis 7 - Caching and rate limiting
+  redis:
+    image: redis:7-alpine
+    container_name: cartguard-redis
+    command: redis-server --appendonly yes
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - cartguard
+
+  # Redpanda - Kafka-compatible event streaming
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v23.3.3
+    container_name: cartguard-redpanda
+    command:
+      - redpanda
+      - start
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr internal://redpanda:9092,external://localhost:19092
+      - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:18082
+      - --advertise-pandaproxy-addr internal://redpanda:8082,external://localhost:18082
+      - --schema-registry-addr internal://0.0.0.0:8081,external://0.0.0.0:18081
+      - --rpc-addr redpanda:33145
+      - --advertise-rpc-addr redpanda:33145
+      - --mode dev-container
+      - --smp 1
+      - --default-log-level=info
+    ports:
+      - '18081:18081' # Schema Registry
+      - '18082:18082' # HTTP Proxy
+      - '19092:19092' # Kafka API (external)
+      - '19644:9644'  # Admin API
+    volumes:
+      - redpanda_data:/var/lib/redpanda/data
+    healthcheck:
+      test: ['CMD-SHELL', 'rpk cluster health | grep -E "Healthy:.*true"']
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - cartguard
+
+  # API Server (placeholder - will be built in Phase 1)
+  # api:
+  #   build:
+  #     context: .
+  #     dockerfile: infra/docker/api.Dockerfile
+  #   container_name: cartguard-api
+  #   environment:
+  #     NODE_ENV: development
+  #     DATABASE_URL: postgresql://cartguard:cartguard_local_only@postgres:5432/cartguard
+  #     REDIS_URL: redis://redis:6379
+  #     KAFKA_BROKERS: redpanda:9092
+  #   ports:
+  #     - '8000:8000'
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #     redpanda:
+  #       condition: service_healthy
+  #   networks:
+  #     - cartguard
+
+  # Worker (placeholder - will be built in Phase 1)
+  # worker:
+  #   build:
+  #     context: .
+  #     dockerfile: infra/docker/worker.Dockerfile
+  #   container_name: cartguard-worker
+  #   environment:
+  #     NODE_ENV: development
+  #     DATABASE_URL: postgresql://cartguard:cartguard_local_only@postgres:5432/cartguard
+  #     REDIS_URL: redis://redis:6379
+  #     KAFKA_BROKERS: redpanda:9092
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #     redpanda:
+  #       condition: service_healthy
+  #   networks:
+  #     - cartguard
+
+networks:
+  cartguard:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  redpanda_data:
+    driver: local

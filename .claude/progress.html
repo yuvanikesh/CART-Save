@@ -1,0 +1,660 @@
+<title>CartGuard AI Implementation Progress</title>
+
+<style>
+  :root {
+    --bg-primary: #fafafa;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #f5f5f5;
+    --text-primary: #1a1a1a;
+    --text-secondary: #666666;
+    --text-tertiary: #999999;
+    --border: #e0e0e0;
+    --accent: #2563eb;
+    --accent-light: #eff6ff;
+    --success: #059669;
+    --success-light: #d1fae5;
+    --warning: #d97706;
+    --warning-light: #fef3c7;
+    --pending: #6b7280;
+    --pending-light: #f3f4f6;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg-primary: #0a0a0a;
+      --bg-secondary: #1a1a1a;
+      --bg-tertiary: #2a2a2a;
+      --text-primary: #f5f5f5;
+      --text-secondary: #a3a3a3;
+      --text-tertiary: #737373;
+      --border: #333333;
+      --accent: #3b82f6;
+      --accent-light: #1e3a8a;
+      --success: #10b981;
+      --success-light: #064e3b;
+      --warning: #f59e0b;
+      --warning-light: #78350f;
+      --pending: #9ca3af;
+      --pending-light: #374151;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg-primary: #0a0a0a;
+    --bg-secondary: #1a1a1a;
+    --bg-tertiary: #2a2a2a;
+    --text-primary: #f5f5f5;
+    --text-secondary: #a3a3a3;
+    --text-tertiary: #737373;
+    --border: #333333;
+    --accent: #3b82f6;
+    --accent-light: #1e3a8a;
+    --success: #10b981;
+    --success-light: #064e3b;
+    --warning: #f59e0b;
+    --warning-light: #78350f;
+    --pending: #9ca3af;
+    --pending-light: #374151;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+    line-height: 1.6;
+    padding: 2rem 1rem;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  header {
+    margin-bottom: 3rem;
+  }
+
+  h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.02em;
+  }
+
+  .subtitle {
+    font-size: 1.125rem;
+    color: var(--text-secondary);
+    margin-bottom: 2rem;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 3rem;
+  }
+
+  .stat-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+  }
+
+  .stat-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 0.25rem;
+  }
+
+  .stat-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .phase-section {
+    margin-bottom: 3rem;
+  }
+
+  .phase-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .phase-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+
+  .phase-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .badge-completed {
+    background: var(--success-light);
+    color: var(--success);
+  }
+
+  .badge-in-progress {
+    background: var(--warning-light);
+    color: var(--warning);
+  }
+
+  .badge-pending {
+    background: var(--pending-light);
+    color: var(--pending);
+  }
+
+  .criteria-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .criterion {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+    transition: border-color 0.2s;
+  }
+
+  .criterion:hover {
+    border-color: var(--accent);
+  }
+
+  .criterion-icon {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+  }
+
+  .icon-complete {
+    background: var(--success-light);
+    color: var(--success);
+  }
+
+  .icon-progress {
+    background: var(--warning-light);
+    color: var(--warning);
+  }
+
+  .icon-pending {
+    background: var(--pending-light);
+    color: var(--pending);
+  }
+
+  .criterion-content {
+    flex: 1;
+  }
+
+  .criterion-title {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+
+  .criterion-description {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+  }
+
+  .progress-bar {
+    margin-top: 3rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+  }
+
+  .progress-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+  }
+
+  .progress-track {
+    width: 100%;
+    height: 12px;
+    background: var(--bg-tertiary);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), #60a5fa);
+    border-radius: 999px;
+    transition: width 0.3s ease;
+  }
+
+  .progress-text {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    text-align: right;
+  }
+
+  .implementation-note {
+    background: var(--accent-light);
+    border-left: 4px solid var(--accent);
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-top: 3rem;
+  }
+
+  .note-title {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--accent);
+  }
+
+  .note-content {
+    font-size: 0.875rem;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 768px) {
+    h1 {
+      font-size: 2rem;
+    }
+
+    .stats {
+      grid-template-columns: 1fr;
+    }
+
+    .phase-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+</style>
+
+<div class="container">
+  <header>
+    <h1>CartGuard AI Implementation Progress</h1>
+    <p class="subtitle">Per MASTER_PROMPT.md Phases 0-5 | Updated 2026-09-08</p>
+  </header>
+
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-value" style="color: var(--success)">3</div>
+      <div class="stat-label">Completed Tasks</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="color: var(--warning)">4</div>
+      <div class="stat-label">In Progress</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="color: var(--pending)">18</div>
+      <div class="stat-label">Pending Tasks</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="color: var(--accent)">24%</div>
+      <div class="stat-label">Overall Progress</div>
+    </div>
+  </div>
+
+  <section class="phase-section">
+    <div class="phase-header">
+      <h2 class="phase-title">Phase 0 — Foundation</h2>
+      <span class="phase-badge badge-in-progress">In Progress</span>
+    </div>
+    <div class="criteria-list">
+      <div class="criterion">
+        <div class="criterion-icon icon-complete">✓</div>
+        <div class="criterion-content">
+          <div class="criterion-title">Strict TypeScript Monorepo Setup</div>
+          <div class="criterion-description">pnpm workspace + turbo, strict mode enabled, packages structured</div>
+        </div>
+      </div>
+      <div class="criterion">
+        <div class="criterion-icon icon-complete">✓</div>
+        <div class="criterion-content">
+          <div class="criterion-title">Contracts Package Complete</div>
+          <div class="criterion-description">Event schemas (12 types), API contracts, type guards, validation helpers</div>
+        </div>
+      </div>
+      <div class="criterion">
+        <div class="criterion-icon icon-complete">✓</div>
+        <div class="criterion-content">
+          <div class="criterion-title">Domain Package Core Logic</div>
+          <div class="criterion-description">Types, consent, eligibility, guardrails, candidates, decision orchestration</div>
+        </div>
+      </div>
+      <div class="criterion">
+        <div class="criterion-icon icon-progress">→</div>
+        <div class="criterion-content">
+          <div class="criterion-title">Docker Compose Configuration</div>
+          <div class="criterion-description">PostgreSQL, Redis, Redpanda services with health checks</div>
+        </div>
+      </div>
+      <div class="criterion">
+        <div class="criterion-icon icon-complete">✓</div>
+        <div class="criterion-content">
+          <div class="criterion-title">Environment Configuration</div>
+          <div class="criterion-description">.env.example with all required variables for local development</div>
+        </div>
+      </div>
+      <div class="criterion">
+        <div class="criterion-icon icon-pending">○</div>
+        <div class="criterion-content">
+          <div class="criterion-title">Health & Readiness Endpoints</div>
+          <div class="criterion-description">GET /health, GET /ready with dependency checks</div>
+        </div>
+      </div>
+      <div class="criterion">
+        <div class="criterion-icon icon-pending">○</div>
+        <div class="criterion-content">
+          <div class="criterion-title">Observability Foundation</div>
+          <div class="criterion-description">Structured logging, trace context, metrics stubs</div>
+        </div>
+      </div>
+      <div class="criterion">
+        <div class="criterion-icon icon-pending">○</div>
+        <div class="criterion-content">
+          <div class="criterion-title">CI Pipeline</div>
+          <div class="criterion-description">Lint, typecheck, test, build, security scans on PR</div>
+        </div>
+      </div>
+      <div class="criterion">
+        <div class="criterion-icon icon-pending">○</div>
+        <div class="criterion-content">
+          <div class="criterion-title">ADR & Threat Model Templates</div>
+          <div class="criterion-description">Documentation templates in docs/adr/ and docs/architecture/</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="phase-section">
+    <div class="phase-header">
+      <h2 class="phase-title">Phase 1 — Safe Event Foundation</h2>
+      <span class="phase-badge badge-pending">Pending</span>
+    </div>
+    <div class="criteria-list">
+      <div class="criterion">
+        <div class="criterion-icon icon-progress">→</div>
+        <div class="criterion-content">
+          <div class="criterion-title">Browser SDK Implementation</div>
+          <div class="criterion-description">Consent management, event batching, bounded queue, decide() + render() APIs</div>
+        </div>
+      </div>
+      <div class="criterion">
+        <div class="criterion-icon icon-pending">○</div>
+        <div class="criterion-content">
+          <div class="criterion-title">Event Ingestion Service</div>
+          <div class="criterion-description">POST /v1/events:batch with schema validation, dedupe, outbox pattern</div>
+        </div>
+      </div>
+      <div class="criterion">
+        <div class="criterion-icon icon-pending">○</div>
+        <div class="criterion-content">
+          <div class="criterion-title">Persistence Layer (Prisma)</div>
+          <div class="criterion-description">Schema, migrations, repositories with tenant isolation, RLS</div>
+        </div>
+      </div>
+      <div class="criterion">
+        <div class="criterion-icon icon-pending">○</div>
+        <div class="criterion-content">
+          <div class="criterion-title">Kafka/Redpanda Integration</div>
+          <div class="criterion-description">Event stream, outbox consumer, topic management</div>
+        </div>
+      </div>
+      <div class="criterion">
+        <div class="criterion-icon icon-pending">○</div>
+        <div class="criterion-content">
+          <div class="criterion-title">Tenant Isolation Tests</div>
+          <div class="criterion-description">Cross-tenant negative tests, query enforcement verification</div>
+        </div>
+      </div>
+      <div class="criterion">
+        <div class="criterion-icon icon-pending">○</div>
+        <div class="criterion-content">
+          <div class="criterion-title">Consent Revocation Flow</div>
+          <div class="criterion-description">SDK stops collection, queued data cleared, server respects</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="phase-section">
+    <div class="phase-header">
+      <h2 class="phase-title">Phase 2 — Rules-Based Decisions</h2>
+      <span class="phase-badge badge-pending">Pending</span>
+    </div>
+    <div class="criteria-list">
+      <div class="criterion">
+        <div class="criterion-icon icon-progress">→</div>
+        <div class="criterion-content">
+          <div class="criterion-title">Decision API Endpoint</div>
+          <div class="criterion-description">POST /v1/decisions with full orchestration flow</div>
+        </div>
+      </div>
+      <div class="criterion">
+        <div class="criterion-icon icon-pending">○</div>
+        <div class="criterion-content">
+          <div class="criterion-title">Policy Management</div>
+          <div class="criterion-description">CRUD endpoints, versioning, activation workflow</div>
+        </div>
+      </div>
+      <div class="criterion">
+        <div class="criterion-icon icon-pending">○</div>
+        <div class="criterion-content">
+          <div class="criterion-title">Budget & Frequency Tracking</div>
+          <div class="criterion-description">Redis-backed caps, reserve/commit pattern, reconciliation</div>
+        </div>
+      </div>
+      <div class="criterion">
+        <div class="criterion-icon icon-pending">○</div>
+        <div class="criterion-content">
+          <div class="criterion-title">Kill Switch Implementation</div>
+          <div class="criterion-description">Global/tenant/shop/action/model scopes, propagation <60s</div>
+        </div>
+      </div>
+      <div class="criterion">
+        <div class="criterion-icon icon-pending">○</div>
+        <div class="criterion-content">
+          <div class="criterion-title">Action Renderer Templates</div>
+          <div class="criterion-description">Local SDK templates for all action types, accessibility compliant</div>
+        </div>
+      </div>
+      <div class="criterion">
+        <div class="criterion-icon icon-pending">○</div>
+        <div class="criterion-content">
+          <div class="criterion-title">E2E Journey Test</div>
+          <div class="criterion-description">SDK → decision → exposure → order complete flow</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="phase-section">
+    <div class="phase-header">
+      <h2 class="phase-title">Phase 3 — Experiments & Reporting</h2>
+      <span class="phase-badge badge-pending">Pending</span>
+    </div>
+    <div class="criteria-list">
+      <div class="criterion">
+        <div class="criterion-icon icon-pending">○</div>
+        <div class="criterion-content">
+          <div class="criterion-title">Experiment Service</div>
+          <div class="criterion-description">Deterministic assignment, control/treatment allocation, state machine</div>
+        </div>
+      </div>
+      <div class="criterion">
+        <div class="criterion-icon icon-pending">○</div>
+        <div class="criterion-content">
+          <div class="criterion-title">Exposure Tracking</div>
+          <div class="criterion-description">intervention.exposed events, decision linkage, audit trail</div>
+        </div>
+      </div>
+      <div class="criterion">
+        <div class="criterion-icon icon-pending">○</div>
+        <div class="criterion-content">
+          <div class="criterion-title">Outcome Attribution</div>
+          <div class="criterion-description">Order completion events tied to decisions, refund handling</div>
+        </div>
+      </div>
+      <div class="criterion">
+        <div class="criterion-icon icon-pending">○</div>
+        <div class="criterion-content">
+          <div class="criterion-title">Report API</div>
+          <div class="criterion-description">Intent-to-treat & exposed cohorts, methodology metadata, caveats</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="phase-section">
+    <div class="phase-header">
+      <h2 class="phase-title">Phase 4 — ML Baseline</h2>
+      <span class="phase-badge badge-pending">Pending</span>
+    </div>
+    <div class="criteria-list">
+      <div class="criterion">
+        <div class="criterion-icon icon-pending">○</div>
+        <div class="criterion-content">
+          <div class="criterion-title">Feature Store</div>
+          <div class="criterion-description">Point-in-time features, freshness tracking, versioned transforms</div>
+        </div>
+      </div>
+      <div class="criterion">
+        <div class="criterion-icon icon-pending">○</div>
+        <div class="criterion-content">
+          <div class="criterion-title">Baseline Heuristic Ranker</div>
+          <div class="criterion-description">Deterministic candidate scoring, evaluation harness</div>
+        </div>
+      </div>
+      <div class="criterion">
+        <div class="criterion-icon icon-pending">○</div>
+        <div class="criterion-content">
+          <div class="criterion-title">Model Registry</div>
+          <div class="criterion-description">Versioning, model cards, approval workflow, rollback</div>
+        </div>
+      </div>
+      <div class="criterion">
+        <div class="criterion-icon icon-pending">○</div>
+        <div class="criterion-content">
+          <div class="criterion-title">Shadow Inference</div>
+          <div class="criterion-description">Log predictions without serving, safe fallback on timeout</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="phase-section">
+    <div class="phase-header">
+      <h2 class="phase-title">Phase 5 — Hardening & Launch</h2>
+      <span class="phase-badge badge-pending">Pending</span>
+    </div>
+    <div class="criteria-list">
+      <div class="criterion">
+        <div class="criterion-icon icon-pending">○</div>
+        <div class="criterion-content">
+          <div class="criterion-title">Simulation Engine</div>
+          <div class="criterion-description">Synthetic customer archetypes, counterfactual scenarios, guardrail stress tests</div>
+        </div>
+      </div>
+      <div class="criterion">
+        <div class="criterion-icon icon-pending">○</div>
+        <div class="criterion-content">
+          <div class="criterion-title">Load & Capacity Testing</div>
+          <div class="criterion-description">Peak cart payload, cold cache, surge, degraded dependencies</div>
+        </div>
+      </div>
+      <div class="criterion">
+        <div class="criterion-icon icon-pending">○</div>
+        <div class="criterion-content">
+          <div class="criterion-title">Kubernetes Deployment</div>
+          <div class="criterion-description">Helm charts, PDBs, HPA, network policies, rollback tested</div>
+        </div>
+      </div>
+      <div class="criterion">
+        <div class="criterion-icon icon-pending">○</div>
+        <div class="criterion-content">
+          <div class="criterion-title">Incident Drill</div>
+          <div class="criterion-description">Budget breach, tenant breach, stale features runbooks executed</div>
+        </div>
+      </div>
+      <div class="criterion">
+        <div class="criterion-icon icon-pending">○</div>
+        <div class="criterion-content">
+          <div class="criterion-title">Security Review</div>
+          <div class="criterion-description">IDOR, injection, secrets, cross-tenant, replay attacks tested</div>
+        </div>
+      </div>
+      <div class="criterion">
+        <div class="criterion-icon icon-pending">○</div>
+        <div class="criterion-content">
+          <div class="criterion-title">Launch Checklist</div>
+          <div class="criterion-description">All acceptance criteria verified with evidence</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="progress-bar">
+    <div class="progress-title">Overall Implementation Progress</div>
+    <div class="progress-track">
+      <div class="progress-fill" style="width: 24%"></div>
+    </div>
+    <div class="progress-text">7 of 29 Phase 0-2 criteria completed</div>
+  </div>
+
+  <div class="implementation-note">
+    <div class="note-title">Current Focus: Phase 0 Foundation</div>
+    <div class="note-content">
+      Completing core infrastructure before moving to event ingestion. Immediate priorities: (1) Persistence layer with Prisma schema, (2) API server skeleton with health endpoints, (3) Observability foundation with structured logging, (4) CI pipeline with lint/test/typecheck/scan, (5) Demo tenant seed data. All Phase 0 work follows strict monorepo patterns with TypeScript strict mode, injected dependencies for deterministic tests, and tenant isolation enforcement.
+    </div>
+  </div>
+</div>
+
+<script>
+  // Add smooth scroll behavior
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+      e.preventDefault();
+      const target = document.querySelector(this.getAttribute('href'));
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth' });
+      }
+    });
+  });
+
+  // Animate progress bar on load
+  window.addEventListener('load', () => {
+    const progressFill = document.querySelector('.progress-fill');
+    if (progressFill) {
+      progressFill.style.width = '0%';
+      setTimeout(() => {
+        progressFill.style.width = '24%';
+      }, 100);
+    }
+  });
+</script>

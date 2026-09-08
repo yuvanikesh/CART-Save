@@ -1,39 +1,74 @@
-# CartGuard AI - Makefile for easy setup
-# Usage: make setup, make train, make start, make demo, make zip
+# CartGuard AI - Development Makefile
+# Per MASTER_PROMPT.md Section 17: Docker Compose and Local Developer Experience
+# Usage: make setup, make up, make test, make clean-local
 
-.PHONY: setup train start-backend start-dashboard run-demo zip all
+.PHONY: setup up down seed test test-integration build lint typecheck clean-local all
 
-# Setup Python virtual environment and install deps
+# Setup: Install dependencies
 setup:
-	cd backend && python -m venv venv
-	cd backend && venv/Scripts/pip install -r requirements.txt
-	cp .env.example .env
-	@echo "✅ Setup complete! Edit .env to add your API keys."
+	@echo "📦 Installing dependencies..."
+	pnpm install
+	@echo "✅ Setup complete!"
 
-# Train the ML model
-train:
-	cd backend && python -m venv venv 2>nul || true
-	cd backend && venv/Scripts/python ..\scripts\train_model.py 10000
+# Start all services (Docker Compose)
+up:
+	@echo "🚀 Starting services..."
+	docker compose up -d
+	@echo "✅ Services running. Check health: docker compose ps"
 
-# Start backend API server
-start-backend:
-	cd backend && venv/Scripts/python main.py
+# Stop all services
+down:
+	@echo "🛑 Stopping services..."
+	docker compose down
+	@echo "✅ Services stopped."
 
-# Start Streamlit dashboard
-start-dashboard:
-	cd dashboard && ..\backend\venv/Scripts/streamlit run app.py
+# Seed demo data (placeholder for Phase 1)
+seed:
+	@echo "🌱 Seeding demo tenant data..."
+	@echo "TODO: Implement seed script in Phase 1"
 
-# Run demo scenarios
-demo:
-	cd backend && venv/Scripts/python ..\scripts\run_demo.py
+# Build all packages
+build:
+	@echo "🔨 Building packages..."
+	pnpm build
+	@echo "✅ Build complete!"
 
-# Create zip for submission
-zip:
-	powershell Compress-Archive -Path . -DestinationPath ..\cartguard-ai-submission.zip -Force
-	@echo "✅ Zip created: cartguard-ai-submission.zip"
+# Run tests
+test:
+	@echo "🧪 Running tests..."
+	pnpm test
+	@echo "✅ Tests passed!"
 
-# Run everything
-all: setup train
+# Run integration tests (placeholder for Phase 1)
+test-integration:
+	@echo "🧪 Running integration tests..."
+	@echo "TODO: Implement integration tests in Phase 1"
+
+# Lint code
+lint:
+	@echo "🔍 Linting code..."
+	pnpm lint
+	@echo "✅ Lint passed!"
+
+# Type check
+typecheck:
+	@echo "📝 Type checking..."
+	pnpm typecheck
+	@echo "✅ Type check passed!"
+
+# Clean local environment
+clean-local:
+	@echo "🧹 Cleaning local environment..."
+	docker compose down -v
+	rm -rf node_modules packages/*/node_modules apps/*/node_modules
+	rm -rf packages/*/dist apps/*/dist
+	@echo "✅ Clean complete!"
+
+# Run everything: setup, up, build, test
+all: setup up build test
 	@echo "✅ CartGuard AI is ready!"
-	@echo "Start backend: make start-backend"
-	@echo "Start dashboard: make start-dashboard"
+	@echo "Services: http://localhost:8000"
+	@echo "PostgreSQL: localhost:5432"
+	@echo "Redis: localhost:6379"
+	@echo "Redpanda: localhost:19092"
+
